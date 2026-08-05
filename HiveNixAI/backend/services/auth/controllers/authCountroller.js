@@ -10,7 +10,7 @@ export const login = async (req, res) => {
             firebaseUserId: decoded.uid
         })
         if (!user) {
-            let user = await User.create({
+            user = await User.create({
                 firebaseUserId: decoded.uid,
                 name: decoded.name,
                 email: decoded.email,

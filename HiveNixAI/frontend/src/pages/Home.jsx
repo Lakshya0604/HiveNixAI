@@ -1,18 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { signInWithPopup } from 'firebase/auth'
 import { auth, googleprovider } from '../../utils/firebase'
 import api from '../../utils/axios'
+import getCurrentUser from '../features/getCurrentUser.js'
+import { useDispatch, useSelector } from 'react-redux'
+import { setUserData } from '../redux/userSlice.js'
 
 const Home = () => {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [remember, setRemember] = useState(false)
     const [error, setError] = useState("")
+    const dispatch = useDispatch()
+    const { userData } = useSelector(state => state.user)
+    console.log(userData)
 
     const handleLogin = async (token) => {
         try {
-            const { data } = await api.post("/auth/login", { token })
-            console.log(data)
+            const { data } = await api.post("/api/auth/login", { token })
+            dispatch(setUserData(data))
         }
         catch (error) {
             console.log(error)
@@ -30,7 +36,12 @@ const Home = () => {
             setError("Google sign-in failed. Try again.")
         }
     }
-
+    useEffect(() => {
+        const getUser = async () => {
+            await getCurrentUser()
+        }
+        getUser()
+    }, [])
     const handleEmailLogin = (e) => {
         e.preventDefault()
         setError("")
@@ -123,7 +134,7 @@ const Home = () => {
             <div className="relative z-10 flex items-center gap-3">
                 <div className="hex-badge w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0"
                     style={{ background: "linear-gradient(135deg, var(--honey-gold), var(--amber-comb))" }}>
-                    <span className="font-display font-bold text-base sm:text-lg" style={{ color: "var(--card-white)" }}>H</span>
+                    <span className="font-display font-bold text-base sm:text-lg" style={{ color: "var(--card-white)" }}>🐝</span>
                 </div>
                 <span className="font-display text-lg sm:text-xl tracking-wide" style={{ color: "var(--ink-brown)" }}>
                     HiveNixAI
