@@ -1,10 +1,9 @@
-import Conversation from "../model/conversationModel"
-import Message from "../model/messageModel"
+import Conversation from "../model/conversationModel.js"
+import Message from "../model/messageModel.js"
 
 export const createConversation = async (req, res) => {
     try {
         const userId = req.headers["x-user-id"]
-        console.log("userId", userId)
         const conversation = await Conversation.create({
             userId: userId
         })
@@ -17,7 +16,6 @@ export const createConversation = async (req, res) => {
 export const getConversations = async (req, res) => {
     try {
         const userId = req.headers["x-user-id"]
-        console.log("userId", userId)
         const conversations = await Conversation.find({
             userId: userId
         }).sort({ updatedAt: -1 })
@@ -27,11 +25,16 @@ export const getConversations = async (req, res) => {
     }
 }
 
-
 export const updateConversations = async (req, res) => {
     try {
         const { id, title } = req.body
-        const conversations = await Conversation.findByIdAndUpdate(id, title)
+        // Line changed: findByIdAndUpdate needs an update OBJECT, not a raw string.
+        // Passing `title` directly was overwriting the doc incorrectly.
+        const conversations = await Conversation.findByIdAndUpdate(
+            id,
+            { title },      // wrapped in object
+            { new: true }   // returns updated doc instead of old one
+        )
         return res.status(200).json(conversations)
     } catch (error) {
         return res.status(500).json({ message: `update conversations error ${error}` })
@@ -40,10 +43,15 @@ export const updateConversations = async (req, res) => {
 
 export const saveMessage = async (req, res) => {
     try {
-        const { convrsationId, role, contend } = req.body
-        if (!convrsationId, !role, !contend) {
-            return res.status(400).json({ message: "don't have either conversation ,role,contend" })
+        // Fixed typos: convrsationId -> conversationId, contend -> content
+        const { conversationId, role, content } = req.body
+
+        // Fixed: comma operator only checked the last condition.
+        // Now all three are properly checked with ||
+        if (!conversationId || !role || !content) {
+            return res.status(400).json({ message: "conversationId, role and content are all required" })
         }
+
         const message = await Message.create({
             conversationId,
             content,
@@ -57,11 +65,16 @@ export const saveMessage = async (req, res) => {
 
 export const getMessages = async (req, res) => {
     try {
-        if (!convrsationId) {
-            return res.status(400).json({ message: "don't have either conversation ,role,contend" })
+        // Fixed: conversationId wasn't declared before this check.
+        // It comes from the route param, e.g. router.get('/:conversationId', getMessages)
+        const { conversationId } = req.params
+
+        if (!conversationId) {
+            return res.status(400).json({ message: "conversationId param is required" })
         }
+
         const messages = await Message.find({
-            conversationId: req.params.conversationId
+            conversationId: conversationId
         }).sort({ createdAt: -1 })
         return res.status(200).json(messages)
     } catch (error) {
