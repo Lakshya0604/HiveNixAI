@@ -5,6 +5,7 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import { getCurrentUser } from "./controllers/userController.js"
 import protect from "./middleware/authMiddleware.js"
+import { proxyWithHeader } from "./utils/proxyWithHeader.js"
 dotenv.config()
 
 const port = process.env.PORT
@@ -15,6 +16,7 @@ app.use(cors({
 }))
 app.use(cookieParser())
 app.use("/api/auth", proxy(process.env.AUTH_SERVICE))
+app.use("/api/chat", protect, proxyWithHeader(process.env.CHAT_SERVICE))
 app.get("/api/me", protect, getCurrentUser)
 app.get("/", (req, res) => {
     res.json({ message: "hellooo i am here" })
