@@ -84,7 +84,7 @@ const ChatArea = () => {
                         </p>
                         <div className="flex items-center gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#4CAF50] shadow-[0_0_6px_rgba(76,175,80,0.7)]" />
-                            <span className="text-[11px] text-[#8A6A42]">Online · LangGraph pipeline</span>
+                            <span className="text-[11px] text-[#8A6A42]">Online · free</span>
                         </div>
                     </div>
                 </div>

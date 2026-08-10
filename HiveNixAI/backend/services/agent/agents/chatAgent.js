@@ -1,4 +1,4 @@
-import { getModel } from "../config/llmModel"
+import { getModel } from "../config/llmModel.js"
 
 export const chatAgent = async (state) => {
     const llm = getModel("chat")

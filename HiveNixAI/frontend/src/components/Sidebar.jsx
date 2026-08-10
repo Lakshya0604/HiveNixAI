@@ -1,213 +1,869 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
 import {
-    LayoutDashboard,
     Bot,
     Network,
-    MessagesSquare,
+    MessageSquare,
     Settings,
     LogOut,
-    ChevronsLeft,
-    ChevronsRight,
-    Hexagon,
+    ChevronLeft,
+    ChevronRight,
+    Sparkles,
     Menu,
     X,
+    PlusIcon,
 } from "lucide-react";
 
-const NAV_SECTIONS = [
-    {
-        label: "Workspace",
-        items: [
-            { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, accent: "#F3A712" },
-            { key: "agents", label: "Agents", icon: Bot, accent: "#DE8A0B" },
-            { key: "gateway", label: "Gateway", icon: Network, accent: "#B96B08" },
-            { key: "conversations", label: "Conversations", icon: MessagesSquare, accent: "#D65A45" },
-        ],
-    },
-    {
-        label: "Account",
-        items: [{ key: "settings", label: "Settings", icon: Settings, accent: "#8A6A42" }],
-    },
-]
+import { createConversation } from "../features/createConversation";
+import { getConversations } from "../features/getConversations";
+import { setConversations, addConversation } from "../redux/conversationSlice";
+
 const Sidebar = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [active, setActive] = useState("dashboard");
 
-    const selectItem = (key) => {
-        setActive(key);
-        setMobileOpen(false); // mobile pe item choose karte hi drawer band ho jaye
+    const dispatch = useDispatch();
+    const conversations = useSelector((state) => state.conversations.conversations || []);
+
+    // =====================================================
+    // GET CONVERSATIONS
+    // =====================================================
+
+    useEffect(() => {
+        const getConv = async () => {
+            try {
+                const data = await getConversations();
+                dispatch(setConversations(data));
+            } catch (error) {
+                console.error("Failed to get conversations:", error);
+            }
+        };
+
+        getConv();
+    }, [dispatch]);
+
+    // =====================================================
+    // RESPONSIVE SIDEBAR
+    // =====================================================
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1200) {
+                setCollapsed(true);
+            }
+
+            if (window.innerWidth >= 768) {
+                setMobileOpen(false);
+            }
+        };
+
+        handleResize();
+
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    // =====================================================
+    // CLOSE MOBILE SIDEBAR
+    // =====================================================
+
+    const closeMobileSidebar = () => {
+        if (window.innerWidth < 768) {
+            setMobileOpen(false);
+        }
     };
 
-    return (
-        <div className="flex h-screen bg-[#FFF8EC]">
-            {/* Mobile top bar — sirf < md screens pe dikhta hai */}
-            <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[#3B2712]/10 bg-[#FFFDF8]/95 px-4 backdrop-blur md:hidden">
-                <div className="flex items-center gap-2">
-                    <div
-                        className="flex h-7 w-7 items-center justify-center bg-gradient-to-br from-[#F3A712] to-[#DE8A0B]"
-                        style={{ clipPath: "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)" }}
-                    >
-                        <span className="text-xs">🐝</span>
-                    </div>
-                    <span className="font-serif text-sm font-semibold text-[#3B2712]">HiveNixAI</span>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => setMobileOpen(true)}
-                    className="rounded-md p-2 text-[#3B2712] hover:bg-[#FFF1D3]"
-                    aria-label="Open menu"
-                >
-                    <Menu size={20} />
-                </button>
-            </div>
+    // =====================================================
+    // YOUR FUNCTIONS
+    // =====================================================
 
-            {/* Backdrop — sirf mobile drawer open hone par */}
+    const handleNewChat = async () => {
+        console.log("New Chat clicked");
+        try {
+            const conversation = await createConversation();
+            dispatch(addConversation(conversation));
+        } catch (error) {
+            console.error("Failed to create conversation:", error);
+        }
+        closeMobileSidebar();
+    };
+
+    const handleAgents = () => {
+        console.log("Agents clicked");
+
+        // ==========================================
+        // ADD YOUR AGENTS FUNCTION HERE
+        // ==========================================
+
+        closeMobileSidebar();
+    };
+
+    const handleGateway = () => {
+        console.log("Gateway clicked");
+
+        // ==========================================
+        // ADD YOUR GATEWAY FUNCTION HERE
+        // ==========================================
+
+        closeMobileSidebar();
+    };
+
+    const handleConversations = () => {
+        console.log("Conversations clicked");
+
+        // ==========================================
+        // ADD YOUR CONVERSATIONS FUNCTION HERE
+        // ==========================================
+
+        closeMobileSidebar();
+    };
+
+    const handleSettings = () => {
+        console.log("Settings clicked");
+
+        // ==========================================
+        // ADD YOUR SETTINGS FUNCTION HERE
+        // ==========================================
+
+        closeMobileSidebar();
+    };
+
+    const handleLogout = () => {
+        console.log("Logout clicked");
+
+        // ==========================================
+        // ADD YOUR LOGOUT FUNCTION HERE
+        // ==========================================
+    };
+
+    // =====================================================
+    // UI
+    // =====================================================
+
+    return (
+        <>
+            {/* =====================================================
+                MOBILE MENU BUTTON
+            ====================================================== */}
+
+            <button
+                onClick={() => setMobileOpen(true)}
+                className="
+                    fixed left-4 top-4 z-[60]
+                    flex h-11 w-11
+                    items-center justify-center
+                    rounded-xl
+                    border border-[#E9DCC5]
+                    bg-[#FFFDF7]
+                    text-[#703F10]
+                    shadow-md
+                    md:hidden
+                "
+            >
+                <Menu size={22} />
+            </button>
+
+            {/* =====================================================
+                MOBILE OVERLAY
+            ====================================================== */}
+
             {mobileOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-[#3B2712]/40 backdrop-blur-sm md:hidden"
                     onClick={() => setMobileOpen(false)}
-                    aria-hidden="true"
+                    className="
+                        fixed inset-0 z-[70]
+                        bg-[#573A1D]/20
+                        backdrop-blur-[2px]
+                        md:hidden
+                    "
                 />
             )}
+
+            {/* =====================================================
+                SIDEBAR
+            ====================================================== */}
+
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex h-screen w-[260px] flex-col overflow-hidden border-r border-[#3B2712]/10 bg-gradient-to-b from-[#FFFDF8] via-[#FFFBF2] to-[#FFF1D3] transition-transform duration-300 ease-out md:relative md:z-auto md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"
-                    } ${collapsed ? "md:w-[76px]" : "md:w-[260px]"}`}
+                className={`
+                    fixed left-0 top-0 z-[80]
+                    flex h-[100dvh]
+                    flex-col
+                    overflow-hidden
+                    border-r border-[#E9DCC5]
+                    bg-[#FFFDF7]
+                    text-[#573A1D]
+                    shadow-xl
+                    transition-all duration-300 ease-in-out
+
+                    md:relative
+                    md:z-50
+                    md:shadow-none
+
+                    ${mobileOpen
+                        ? "translate-x-0"
+                        : "-translate-x-full md:translate-x-0"
+                    }
+
+                    ${collapsed
+                        ? "w-[92px]"
+                        : "w-[min(370px,30vw)]"
+                    }
+
+                    max-md:w-[300px]
+                `}
             >
-                {/* mobile-only close button */}
-                <button
-                    type="button"
-                    onClick={() => setMobileOpen(false)}
-                    className="absolute right-3 top-3 z-10 rounded-md p-1.5 text-[#8A6A42] hover:bg-[#FFF1D3] md:hidden"
-                    aria-label="Close menu"
+                {/* =================================================
+                    BACKGROUND PATTERN
+                ================================================== */}
+
+                <div
+                    className="
+                        pointer-events-none
+                        absolute inset-0
+                        opacity-50
+                    "
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(
+                                30deg,
+                                #F7EEDB 12%,
+                                transparent 12.5%,
+                                transparent 87%,
+                                #F7EEDB 87.5%,
+                                #F7EEDB
+                            ),
+                            linear-gradient(
+                                150deg,
+                                #F7EEDB 12%,
+                                transparent 12.5%,
+                                transparent 87%,
+                                #F7EEDB 87.5%,
+                                #F7EEDB
+                            )
+                        `,
+                        backgroundSize: "80px 140px",
+                    }}
+                />
+
+                {/* =================================================
+                    HEADER
+                ================================================== */}
+
+                <div
+                    className={`
+                        relative z-10
+                        flex h-[78px]
+                        shrink-0
+                        items-center
+                        border-b border-[#E9DCC5]
+                        transition-all duration-300
+
+                        ${collapsed
+                            ? "justify-center px-3"
+                            : "px-5"
+                        }
+                    `}
                 >
-                    <X size={18} />
-                </button>
+                    {/* LOGO */}
 
-                {/* faint honeycomb texture */}
-                <div
-                    className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(30deg,#DE8A0B_12%,transparent_12.5%,transparent_87%,#DE8A0B_87.5%,#DE8A0B),linear-gradient(150deg,#DE8A0B_12%,transparent_12.5%,transparent_87%,#DE8A0B_87.5%,#DE8A0B)] [background-size:44px_76px]"
-                    aria-hidden="true"
-                />
-                {/* golden edge glow */}
-                <div
-                    className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[#F3A712]/50 to-transparent"
-                    aria-hidden="true"
-                />
-
-                {/* Logo / brand */}
-                <div className="relative flex items-center gap-3 px-4 pt-5 pb-4">
                     <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center bg-gradient-to-br from-[#F3A712] via-[#EA9A0E] to-[#DE8A0B] shadow-[0_8px_20px_-6px_rgba(222,138,11,0.65)] ring-2 ring-[#FFF1D3]"
-                        style={{ clipPath: "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)" }}
+                        className="
+                            flex h-[52px] w-[52px]
+                            shrink-0
+                            items-center
+                            justify-center
+                            bg-[#F0A000]
+                            text-white
+                        "
+                        style={{
+                            clipPath:
+                                "polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%)",
+                        }}
                     >
-                        <span className="text-base">🐝</span>
+                        <Sparkles size={23} />
                     </div>
+
+                    {/* BRAND */}
+
                     {!collapsed && (
-                        <div className="min-w-0">
-                            <p className="truncate bg-gradient-to-r from-[#B96B08] to-[#3B2712] bg-clip-text font-serif text-[15px] font-semibold tracking-wide text-transparent">
+                        <div className="ml-4 min-w-0">
+                            <h1
+                                className="
+                                    whitespace-nowrap
+                                    font-serif
+                                    text-[22px]
+                                    font-bold
+                                    text-[#703F10]
+                                "
+                            >
                                 HiveNixAI
-                            </p>
-                            <p className="truncate text-[11px] text-[#8A6A42]">
+                            </h1>
+
+                            <p
+                                className="
+                                    whitespace-nowrap
+                                    text-[14px]
+                                    text-[#8C7254]
+                                "
+                            >
                                 Multi-agent console
                             </p>
                         </div>
                     )}
-                </div>
 
-                <div className="relative mx-4 h-px bg-gradient-to-r from-transparent via-[#3B2712]/15 to-transparent" />
-
-                {/* Nav */}
-                <nav className="relative flex-1 overflow-y-auto px-3 py-4">
-                    {NAV_SECTIONS.map((section) => (
-                        <div key={section.label} className="mb-6 last:mb-0">
-                            {!collapsed && (
-                                <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A6A42]/70">
-                                    {section.label}
-                                </p>
-                            )}
-                            <ul className="space-y-1.5">
-                                {section.items.map(({ key, label, icon: Icon, accent }) => {
-                                    const isActive = active === key;
-                                    return (
-                                        <li key={key}>
-                                            <button
-                                                type="button"
-                                                onClick={() => selectItem(key)}
-                                                title={collapsed ? label : undefined}
-                                                className={`group relative flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-all ${isActive
-                                                    ? "bg-gradient-to-r from-[#F3A712] to-[#DE8A0B] text-[#FFFDF8] shadow-[0_8px_18px_-8px_rgba(222,138,11,0.7)]"
-                                                    : "text-[#5A4128] hover:bg-white hover:shadow-sm"
-                                                    } ${collapsed ? "justify-center" : ""}`}
-                                            >
-                                                <span
-                                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
-                                                    style={{
-                                                        backgroundColor: isActive ? "rgba(255,255,255,0.22)" : `${accent}1A`,
-                                                    }}
-                                                >
-                                                    <Icon
-                                                        size={16}
-                                                        strokeWidth={2.25}
-                                                        style={{ color: isActive ? "#FFFDF8" : accent }}
-                                                    />
-                                                </span>
-                                                {!collapsed && <span className="truncate">{label}</span>}
-                                                {collapsed && isActive && (
-                                                    <span className="absolute -right-3 h-5 w-1 rounded-full bg-[#F3A712]" />
-                                                )}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        </div>
-                    ))}
-                </nav>
-
-                <div className="relative mx-4 h-px bg-gradient-to-r from-transparent via-[#3B2712]/15 to-transparent" />
-
-                {/* User + collapse toggle */}
-                <div className="relative px-3 py-4">
-                    <div
-                        className={`flex items-center gap-3 rounded-xl bg-white/60 px-2 py-2 ring-1 ring-[#3B2712]/5 ${collapsed ? "justify-center" : ""
-                            }`}
-                    >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F3A712] to-[#DE8A0B] text-xs font-semibold text-[#FFFDF8] shadow-sm">
-                            LK
-                        </div>
-                        {!collapsed && (
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-[#3B2712]">
-                                    Lakshya
-                                </p>
-                                <p className="truncate text-[11px] text-[#8A6A42]">
-                                    Builder
-                                </p>
-                            </div>
-                        )}
-                        {!collapsed && (
-                            <button
-                                type="button"
-                                title="Log out"
-                                className="shrink-0 rounded-md p-1.5 text-[#8A6A42] transition-colors hover:bg-[#FFF1D3] hover:text-[#D65A45]"
-                            >
-                                <LogOut size={16} />
-                            </button>
-                        )}
-                    </div>
+                    {/* MOBILE CLOSE */}
 
                     <button
-                        type="button"
-                        onClick={() => setCollapsed((c) => !c)}
-                        className="mt-3 hidden w-full items-center justify-center gap-2 rounded-lg border border-[#3B2712]/10 py-2 text-xs font-medium text-[#8A6A42] transition-colors hover:bg-[#FFF1D3] hover:text-[#3B2712] md:flex"
+                        onClick={() => setMobileOpen(false)}
+                        className="
+                            ml-auto
+                            rounded-lg
+                            p-2
+                            text-[#8E6C42]
+                            hover:bg-[#FFF0D6]
+                            md:hidden
+                        "
                     >
-                        {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-                        {!collapsed && "Collapse"}
+                        <X size={20} />
                     </button>
                 </div>
-            </aside>
-        </div>
-    );
-}
 
-export default Sidebar
+                {/* =================================================
+                    NAVIGATION
+                ================================================== */}
+
+                <div
+                    className="
+                        relative z-10
+                        min-h-0
+                        flex-1
+                        overflow-y-auto
+                        px-3
+                        pt-7
+                    "
+                >
+                    {/* WORKSPACE */}
+
+                    {!collapsed && (
+                        <p
+                            className="
+                                mb-3
+                                px-3
+                                text-[12px]
+                                font-medium
+                                uppercase
+                                tracking-[0.15em]
+                                text-[#A27C4D]
+                            "
+                        >
+                            Workspace
+                        </p>
+                    )}
+
+                    <nav className="space-y-2">
+
+                        {/* =================================================
+                            NEW CHAT
+                        ================================================== */}
+
+                        <button
+                            onClick={handleNewChat}
+                            title={collapsed ? "New Chat" : ""}
+                            className={`
+                                group
+                                relative
+                                flex
+                                h-[60px]
+                                w-full
+                                items-center
+                                rounded-[16px]
+                                bg-[#EEA000]
+                                text-white
+                                shadow-lg
+                                shadow-[#E89A00]/20
+                                transition
+                                hover:bg-[#E59600]
+
+                                ${collapsed
+                                    ? "justify-center"
+                                    : "gap-4 px-3"
+                                }
+                            `}
+                        >
+                            <span
+                                className="
+                                    flex
+                                    h-[42px]
+                                    w-[42px]
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[13px]
+                                    bg-white/20
+                                "
+                            >
+                                <PlusIcon size={21} />
+                            </span>
+
+                            {!collapsed && (
+                                <span className="text-[16px] font-semibold">
+                                    New Chat
+                                </span>
+                            )}
+
+                            {collapsed && (
+                                <span className="sidebar-tooltip">
+                                    New Chat
+                                </span>
+                            )}
+                        </button>
+
+                        {/* =================================================
+                            AGENTS
+                        ================================================== */}
+
+                        <button
+                            onClick={handleAgents}
+                            title={collapsed ? "Agents" : ""}
+                            className={`
+                                group
+                                relative
+                                flex
+                                h-[60px]
+                                w-full
+                                items-center
+                                rounded-[16px]
+                                text-[#573A1D]
+                                transition
+                                hover:bg-[#FFF0D6]
+
+                                ${collapsed
+                                    ? "justify-center"
+                                    : "gap-4 px-3"
+                                }
+                            `}
+                        >
+                            <span
+                                className="
+                                    flex
+                                    h-[42px]
+                                    w-[42px]
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[13px]
+                                    bg-[#FFF0D6]
+                                    text-[#E49300]
+                                "
+                            >
+                                <Bot size={21} />
+                            </span>
+
+                            {!collapsed && (
+                                <span className="text-[16px] font-medium">
+                                    Agents
+                                </span>
+                            )}
+
+                            {collapsed && (
+                                <span className="sidebar-tooltip">
+                                    Agents
+                                </span>
+                            )}
+                        </button>
+
+                        {/* =================================================
+                            GATEWAY
+                        ================================================== */}
+
+                        <button
+                            onClick={handleGateway}
+                            title={collapsed ? "Gateway" : ""}
+                            className={`
+                                group
+                                relative
+                                flex
+                                h-[60px]
+                                w-full
+                                items-center
+                                rounded-[16px]
+                                text-[#573A1D]
+                                transition
+                                hover:bg-[#FFF0D6]
+
+                                ${collapsed
+                                    ? "justify-center"
+                                    : "gap-4 px-3"
+                                }
+                            `}
+                        >
+                            <span
+                                className="
+                                    flex
+                                    h-[42px]
+                                    w-[42px]
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[13px]
+                                    bg-[#FFF0D6]
+                                    text-[#D78300]
+                                "
+                            >
+                                <Network size={21} />
+                            </span>
+
+                            {!collapsed && (
+                                <span className="text-[16px] font-medium">
+                                    Gateway
+                                </span>
+                            )}
+
+                            {collapsed && (
+                                <span className="sidebar-tooltip">
+                                    Gateway
+                                </span>
+                            )}
+                        </button>
+
+                        {/* =================================================
+                            CONVERSATIONS
+                        ================================================== */}
+
+                        <button
+                            onClick={handleConversations}
+                            title={collapsed ? "Conversations" : ""}
+                            className={`
+                                group
+                                relative
+                                flex
+                                h-[60px]
+                                w-full
+                                items-center
+                                rounded-[16px]
+                                text-[#573A1D]
+                                transition
+                                hover:bg-[#FFF0D6]
+
+                                ${collapsed
+                                    ? "justify-center"
+                                    : "gap-4 px-3"
+                                }
+                            `}
+                        >
+                            <span
+                                className="
+                                    flex
+                                    h-[42px]
+                                    w-[42px]
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[13px]
+                                    bg-[#FFF0D6]
+                                    text-[#E85C42]
+                                "
+                            >
+                                <MessageSquare size={21} />
+                            </span>
+
+                            {!collapsed && (
+                                <span className="text-[16px] font-medium">
+                                    Conversations
+                                </span>
+                            )}
+
+                            {collapsed && (
+                                <span className="sidebar-tooltip">
+                                    Conversations
+                                </span>
+                            )}
+                        </button>
+
+                    </nav>
+
+                    {!collapsed && (
+                        <div className="mt-6 px-3">
+                            <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.15em] text-[#A27C4D]">
+                                Recent conversations
+                            </p>
+
+                            {conversations.length > 0 ? (
+                                <div className="space-y-2">
+                                    {conversations.map((conversation) => (
+                                        <button
+                                            key={conversation._id}
+                                            className="w-full rounded-[14px] border border-[#E9DCC5] bg-[#FFFDF7] px-3 py-3 text-left text-sm text-[#573A1D] transition hover:bg-[#FFF7E7]"
+                                        >
+                                            {conversation.title || "New Chat"}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-[14px] border border-dashed border-[#E9DCC5] bg-[#FFFDF7] px-3 py-4 text-sm text-[#8C7254]">
+                                    No conversations yet.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* =================================================
+                        ACCOUNT
+                    ================================================== */}
+
+                    <div className="mt-7">
+
+                        {!collapsed && (
+                            <p
+                                className="
+                                    mb-3
+                                    px-3
+                                    text-[12px]
+                                    font-medium
+                                    uppercase
+                                    tracking-[0.15em]
+                                    text-[#A27C4D]
+                                "
+                            >
+                                Account
+                            </p>
+                        )}
+
+                        {/* =================================================
+                            SETTINGS
+                        ================================================== */}
+
+                        <button
+                            onClick={handleSettings}
+                            title={collapsed ? "Settings" : ""}
+                            className={`
+                                group
+                                relative
+                                flex
+                                h-[60px]
+                                w-full
+                                items-center
+                                rounded-[16px]
+                                text-[#573A1D]
+                                transition
+                                hover:bg-[#FFF0D6]
+
+                                ${collapsed
+                                    ? "justify-center"
+                                    : "gap-4 px-3"
+                                }
+                            `}
+                        >
+                            <span
+                                className="
+                                    flex
+                                    h-[42px]
+                                    w-[42px]
+                                    shrink-0
+                                    items-center
+                                    justify-center
+                                    rounded-[13px]
+                                    bg-[#F6EDDC]
+                                    text-[#8D7049]
+                                "
+                            >
+                                <Settings size={21} />
+                            </span>
+
+                            {!collapsed && (
+                                <span className="text-[16px] font-medium">
+                                    Settings
+                                </span>
+                            )}
+
+                            {collapsed && (
+                                <span className="sidebar-tooltip">
+                                    Settings
+                                </span>
+                            )}
+                        </button>
+
+                    </div>
+                </div>
+
+                {/* =================================================
+                    USER
+                ================================================== */}
+
+                <div className="relative z-10 shrink-0 px-3 pb-3">
+
+                    <div
+                        className={`
+                            flex
+                            h-[76px]
+                            items-center
+                            rounded-[17px]
+                            border
+                            border-[#EADDC8]
+                            bg-[#FFFDF8]
+                            shadow-sm
+
+                            ${collapsed
+                                ? "justify-center"
+                                : "px-3"
+                            }
+                        `}
+                    >
+
+                        {/* AVATAR */}
+
+                        <div
+                            className="
+                                flex
+                                h-[46px]
+                                w-[46px]
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-[#F0A000]
+                                text-[14px]
+                                font-semibold
+                                text-white
+                            "
+                        >
+                            LK
+                        </div>
+
+                        {/* USER DETAILS */}
+
+                        {!collapsed && (
+                            <>
+                                <div className="ml-3 min-w-0 flex-1">
+
+                                    <p
+                                        className="
+                                            truncate
+                                            text-[15px]
+                                            font-semibold
+                                            text-[#573A1D]
+                                        "
+                                    >
+                                        Lakshya
+                                    </p>
+
+                                    <p
+                                        className="
+                                            text-[13px]
+                                            text-[#9B7953]
+                                        "
+                                    >
+                                        Builder
+                                    </p>
+
+                                </div>
+
+                                {/* LOGOUT */}
+
+                                <button
+                                    onClick={handleLogout}
+                                    title="Logout"
+                                    className="
+                                        rounded-lg
+                                        p-2
+                                        text-[#8E6C42]
+                                        transition
+                                        hover:bg-[#FFF0D6]
+                                        hover:text-[#D78300]
+                                    "
+                                >
+                                    <LogOut size={19} />
+                                </button>
+                            </>
+                        )}
+
+                    </div>
+
+                    {/* =================================================
+                        COLLAPSE BUTTON
+                    ================================================== */}
+
+                    <button
+                        onClick={() => {
+                            setCollapsed(!collapsed);
+                        }}
+                        className={`
+                            group
+                            relative
+                            mt-2
+                            flex
+                            h-[48px]
+                            w-full
+                            items-center
+                            justify-center
+                            rounded-[14px]
+                            border
+                            border-[#EADDC8]
+                            bg-[#FFF7E7]
+                            text-[#916B3B]
+                            transition
+                            hover:bg-[#FCEBCB]
+                            hover:text-[#C97900]
+
+                            ${collapsed
+                                ? ""
+                                : "gap-2"
+                            }
+                        `}
+                    >
+                        {collapsed ? (
+                            <ChevronRight size={21} />
+                        ) : (
+                            <>
+                                <ChevronLeft size={18} />
+
+                                <span className="text-[14px] font-medium">
+                                    Collapse
+                                </span>
+                            </>
+                        )}
+
+                        {collapsed && (
+                            <span className="sidebar-tooltip">
+                                Expand sidebar
+                            </span>
+                        )}
+                    </button>
+
+                </div>
+
+            </aside>
+
+            {/* =====================================================
+                TOOLTIP
+            ====================================================== */}
+
+            <style>{`
+                .sidebar-tooltip {
+                    pointer-events: none;
+                    position: absolute;
+                    left: 82px;
+                    z-index: 100;
+                    display: none;
+                    white-space: nowrap;
+                    border-radius: 8px;
+                    background: #573A1D;
+                    padding: 8px 12px;
+                    font-size: 12px;
+                    color: white;
+                    box-shadow: 0 8px 20px rgba(87, 58, 29, 0.2);
+                }
+
+                .group:hover .sidebar-tooltip {
+                    display: block;
+                }
+            `}</style>
+        </>
+    );
+};
+
+export default Sidebar;

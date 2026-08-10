@@ -1,18 +1,24 @@
-import express from "express"
-import dotenv from "dotenv"
-import connectDb from "./config/db.js"
-import { router } from "./agents/routes/agentRoute.js"
-dotenv.config()
-const app = express()
+import "dotenv/config";
 
-app.use(express.json())
+import express from "express";
+import connectDb from "./config/db.js";
+import router from "./agents/routes/agentRoute.js";
 
-app.use("/", router)
+const app = express();
+
+app.use(express.json());
+
+app.use("/", router);
+
 app.get("/", (req, res) => {
-    res.json({ message: "agent server is working" })
-})
-const port = process.env.PORT
+    res.json({
+        message: "agent server is working",
+    });
+});
+
+const port = process.env.PORT || 8003;
+
 app.listen(port, () => {
-    console.log(`your agent server http://localhost:${port}`)
-    connectDb()
-})
+    console.log(`Your agent server http://localhost:${port}`);
+    connectDb();
+});
