@@ -13,18 +13,22 @@ import {
     Menu,
     X,
     PlusIcon,
+    User,
 } from "lucide-react";
 
 import { createConversation } from "../features/createConversation";
 import { getConversations } from "../features/getConversations";
 import { setConversations, addConversation } from "../redux/conversationSlice";
+import logOut from "../features/logOut";
 
 const Sidebar = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     const dispatch = useDispatch();
-    const conversations = useSelector((state) => state.conversations.conversations || []);
+    const { conversations, selectedConversation } = useSelector((state) => state.conversations || []);
+    const { userData } = useSelector((state) => state.user)
 
     // =====================================================
     // GET CONVERSATIONS
@@ -114,11 +118,6 @@ const Sidebar = () => {
 
     const handleConversations = () => {
         console.log("Conversations clicked");
-
-        // ==========================================
-        // ADD YOUR CONVERSATIONS FUNCTION HERE
-        // ==========================================
-
         closeMobileSidebar();
     };
 
@@ -132,18 +131,14 @@ const Sidebar = () => {
         closeMobileSidebar();
     };
 
-    const handleLogout = () => {
-        console.log("Logout clicked");
-
-        // ==========================================
-        // ADD YOUR LOGOUT FUNCTION HERE
-        // ==========================================
+    const handleLogout = async () => {
+        await logOut();
+        dispatch(setUserData(null))
     };
 
     // =====================================================
     // UI
-    // =====================================================
-
+    // =====================================
     return (
         <>
             {/* =====================================================
@@ -599,7 +594,7 @@ const Sidebar = () => {
                                             key={conversation._id}
                                             className="w-full rounded-[14px] border border-[#E9DCC5] bg-[#FFFDF7] px-3 py-3 text-left text-sm text-[#573A1D] transition hover:bg-[#FFF7E7]"
                                         >
-                                            {conversation.title || "New Chat"}
+                                            {conversation.title || "Chat"}
                                         </button>
                                     ))}
                                 </div>
@@ -731,7 +726,11 @@ const Sidebar = () => {
                                 text-white
                             "
                         >
-                            LK
+                            {
+                                userData?.avatar && !imageError ? (
+                                    <img src={userData.avatar} alt={userData.name || "user"} className="h-full w-full object-cover" onError={() => setImageError(true)} />
+                                ) : (<User />)
+                            }
                         </div>
 
                         {/* USER DETAILS */}
@@ -747,8 +746,7 @@ const Sidebar = () => {
                                             font-semibold
                                             text-[#573A1D]
                                         "
-                                    >
-                                        Lakshya
+                                    >{userData?.name || "New user"}
                                     </p>
 
                                     <p
@@ -757,7 +755,7 @@ const Sidebar = () => {
                                             text-[#9B7953]
                                         "
                                     >
-                                        Builder
+                                        Builder-free plan
                                     </p>
 
                                 </div>
