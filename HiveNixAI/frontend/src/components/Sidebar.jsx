@@ -18,7 +18,12 @@ import {
 
 import { createConversation } from "../features/createConversation";
 import { getConversations } from "../features/getConversations";
-import { setConversations, addConversation } from "../redux/conversationSlice";
+import {
+    setConversations,
+    addConversation,
+    setselectedConversation,
+} from "../redux/conversationSlice";
+import { setUserData } from "../redux/userSlice";
 import logOut from "../features/logOut";
 
 const Sidebar = () => {
@@ -27,8 +32,24 @@ const Sidebar = () => {
     const [imageError, setImageError] = useState(false);
 
     const dispatch = useDispatch();
-    const { conversations, selectedConversation } = useSelector((state) => state.conversations || []);
-    const { userData } = useSelector((state) => state.user)
+
+    // =====================================================
+    // REDUX STATE
+    // =====================================================
+
+    const convoState = useSelector(
+        (state) => state.conversation
+    );
+
+    const conversations =
+        convoState?.conversations ?? [];
+
+    const selectedConversation =
+        convoState?.selectedConversation;
+
+    const { userData } = useSelector(
+        (state) => state.user
+    );
 
     // =====================================================
     // GET CONVERSATIONS
@@ -38,14 +59,23 @@ const Sidebar = () => {
         const getConv = async () => {
             try {
                 const data = await getConversations();
+
+                console.log(
+                    "CONVERSATIONS:",
+                    data
+                );
+
                 dispatch(setConversations(data));
             } catch (error) {
-                console.error("Failed to get conversations:", error);
+                console.error(
+                    "Failed to get conversations:",
+                    error
+                );
             }
         };
 
         getConv();
-    }, [dispatch]);
+    }, [userData?._id, dispatch]);
 
     // =====================================================
     // RESPONSIVE SIDEBAR
@@ -64,10 +94,16 @@ const Sidebar = () => {
 
         handleResize();
 
-        window.addEventListener("resize", handleResize);
+        window.addEventListener(
+            "resize",
+            handleResize
+        );
 
         return () => {
-            window.removeEventListener("resize", handleResize);
+            window.removeEventListener(
+                "resize",
+                handleResize
+            );
         };
     }, []);
 
@@ -82,63 +118,136 @@ const Sidebar = () => {
     };
 
     // =====================================================
-    // YOUR FUNCTIONS
+    // NEW CHAT
     // =====================================================
 
     const handleNewChat = async () => {
         console.log("New Chat clicked");
+
         try {
-            const conversation = await createConversation();
-            dispatch(addConversation(conversation));
+            const conversation =
+                await createConversation();
+
+            console.log(
+                "Created conversation:",
+                conversation
+            );
+
+            // Add conversation to sidebar
+            dispatch(
+                addConversation(conversation)
+            );
+
+            // IMPORTANT:
+            // Make newly created conversation active
+            dispatch(
+                setselectedConversation(
+                    conversation
+                )
+            );
+
+            console.log(
+                "Selected new conversation:",
+                conversation
+            );
+
         } catch (error) {
-            console.error("Failed to create conversation:", error);
+            console.error(
+                "Failed to create conversation:",
+                error
+            );
         }
+
         closeMobileSidebar();
     };
+
+    // =====================================================
+    // SELECT EXISTING CONVERSATION
+    // =====================================================
+
+    const handleSelectConversation = (
+        conversation
+    ) => {
+        console.log(
+            "Selecting conversation:",
+            conversation
+        );
+
+        dispatch(
+            setselectedConversation(
+                conversation
+            )
+        );
+
+        closeMobileSidebar();
+    };
+
+    // =====================================================
+    // AGENTS
+    // =====================================================
 
     const handleAgents = () => {
         console.log("Agents clicked");
 
-        // ==========================================
-        // ADD YOUR AGENTS FUNCTION HERE
-        // ==========================================
-
         closeMobileSidebar();
     };
+
+    // =====================================================
+    // GATEWAY
+    // =====================================================
 
     const handleGateway = () => {
         console.log("Gateway clicked");
 
-        // ==========================================
-        // ADD YOUR GATEWAY FUNCTION HERE
-        // ==========================================
-
         closeMobileSidebar();
     };
+
+    // =====================================================
+    // CONVERSATIONS
+    // =====================================================
 
     const handleConversations = () => {
-        console.log("Conversations clicked");
+        console.log(
+            "Conversations clicked"
+        );
+
         closeMobileSidebar();
     };
+
+    // =====================================================
+    // SETTINGS
+    // =====================================================
 
     const handleSettings = () => {
         console.log("Settings clicked");
 
-        // ==========================================
-        // ADD YOUR SETTINGS FUNCTION HERE
-        // ==========================================
-
         closeMobileSidebar();
     };
 
+    // =====================================================
+    // LOGOUT
+    // =====================================================
+
     const handleLogout = async () => {
-        await logOut();
-        dispatch(setUserData(null))
+        try {
+            await logOut();
+
+            dispatch(
+                setUserData(null)
+            );
+
+        } catch (error) {
+            console.error(
+                "Logout failed:",
+                error
+            );
+        }
     };
 
     // =====================================================
     // UI
-    // =====================================
+    // =====================================================
+
     return (
         <>
             {/* =====================================================
@@ -146,9 +255,11 @@ const Sidebar = () => {
             ====================================================== */}
 
             <button
-                onClick={() => setMobileOpen(true)}
+                onClick={() =>
+                    setMobileOpen(true)
+                }
                 className="
-                    fixed left-4 top-4 z-[60]
+                    fixed left-3 top-3 z-[60]
                     flex h-11 w-11
                     items-center justify-center
                     rounded-xl
@@ -158,6 +269,7 @@ const Sidebar = () => {
                     shadow-md
                     md:hidden
                 "
+                aria-label="Open sidebar"
             >
                 <Menu size={22} />
             </button>
@@ -168,7 +280,9 @@ const Sidebar = () => {
 
             {mobileOpen && (
                 <div
-                    onClick={() => setMobileOpen(false)}
+                    onClick={() =>
+                        setMobileOpen(false)
+                    }
                     className="
                         fixed inset-0 z-[70]
                         bg-[#573A1D]/20
@@ -211,6 +325,7 @@ const Sidebar = () => {
                     max-md:w-[300px]
                 `}
             >
+
                 {/* =================================================
                     BACKGROUND PATTERN
                 ================================================== */}
@@ -240,7 +355,8 @@ const Sidebar = () => {
                                 #F7EEDB
                             )
                         `,
-                        backgroundSize: "80px 140px",
+                        backgroundSize:
+                            "80px 140px",
                     }}
                 />
 
@@ -263,6 +379,7 @@ const Sidebar = () => {
                         }
                     `}
                 >
+
                     {/* LOGO */}
 
                     <div
@@ -286,6 +403,7 @@ const Sidebar = () => {
 
                     {!collapsed && (
                         <div className="ml-4 min-w-0">
+
                             <h1
                                 className="
                                     whitespace-nowrap
@@ -307,13 +425,16 @@ const Sidebar = () => {
                             >
                                 Multi-agent console
                             </p>
+
                         </div>
                     )}
 
                     {/* MOBILE CLOSE */}
 
                     <button
-                        onClick={() => setMobileOpen(false)}
+                        onClick={() =>
+                            setMobileOpen(false)
+                        }
                         className="
                             ml-auto
                             rounded-lg
@@ -325,6 +446,7 @@ const Sidebar = () => {
                     >
                         <X size={20} />
                     </button>
+
                 </div>
 
                 {/* =================================================
@@ -341,6 +463,7 @@ const Sidebar = () => {
                         pt-7
                     "
                 >
+
                     {/* WORKSPACE */}
 
                     {!collapsed && (
@@ -366,8 +489,14 @@ const Sidebar = () => {
                         ================================================== */}
 
                         <button
-                            onClick={handleNewChat}
-                            title={collapsed ? "New Chat" : ""}
+                            onClick={
+                                handleNewChat
+                            }
+                            title={
+                                collapsed
+                                    ? "New Chat"
+                                    : ""
+                            }
                             className={`
                                 group
                                 relative
@@ -389,6 +518,7 @@ const Sidebar = () => {
                                 }
                             `}
                         >
+
                             <span
                                 className="
                                     flex
@@ -401,7 +531,9 @@ const Sidebar = () => {
                                     bg-white/20
                                 "
                             >
-                                <PlusIcon size={21} />
+                                <PlusIcon
+                                    size={21}
+                                />
                             </span>
 
                             {!collapsed && (
@@ -415,6 +547,7 @@ const Sidebar = () => {
                                     New Chat
                                 </span>
                             )}
+
                         </button>
 
                         {/* =================================================
@@ -422,8 +555,14 @@ const Sidebar = () => {
                         ================================================== */}
 
                         <button
-                            onClick={handleAgents}
-                            title={collapsed ? "Agents" : ""}
+                            onClick={
+                                handleAgents
+                            }
+                            title={
+                                collapsed
+                                    ? "Agents"
+                                    : ""
+                            }
                             className={`
                                 group
                                 relative
@@ -442,6 +581,7 @@ const Sidebar = () => {
                                 }
                             `}
                         >
+
                             <span
                                 className="
                                     flex
@@ -469,6 +609,7 @@ const Sidebar = () => {
                                     Agents
                                 </span>
                             )}
+
                         </button>
 
                         {/* =================================================
@@ -476,8 +617,14 @@ const Sidebar = () => {
                         ================================================== */}
 
                         <button
-                            onClick={handleGateway}
-                            title={collapsed ? "Gateway" : ""}
+                            onClick={
+                                handleGateway
+                            }
+                            title={
+                                collapsed
+                                    ? "Gateway"
+                                    : ""
+                            }
                             className={`
                                 group
                                 relative
@@ -496,6 +643,7 @@ const Sidebar = () => {
                                 }
                             `}
                         >
+
                             <span
                                 className="
                                     flex
@@ -509,7 +657,9 @@ const Sidebar = () => {
                                     text-[#D78300]
                                 "
                             >
-                                <Network size={21} />
+                                <Network
+                                    size={21}
+                                />
                             </span>
 
                             {!collapsed && (
@@ -523,6 +673,7 @@ const Sidebar = () => {
                                     Gateway
                                 </span>
                             )}
+
                         </button>
 
                         {/* =================================================
@@ -530,8 +681,14 @@ const Sidebar = () => {
                         ================================================== */}
 
                         <button
-                            onClick={handleConversations}
-                            title={collapsed ? "Conversations" : ""}
+                            onClick={
+                                handleConversations
+                            }
+                            title={
+                                collapsed
+                                    ? "Conversations"
+                                    : ""
+                            }
                             className={`
                                 group
                                 relative
@@ -550,6 +707,7 @@ const Sidebar = () => {
                                 }
                             `}
                         >
+
                             <span
                                 className="
                                     flex
@@ -563,7 +721,9 @@ const Sidebar = () => {
                                     text-[#E85C42]
                                 "
                             >
-                                <MessageSquare size={21} />
+                                <MessageSquare
+                                    size={21}
+                                />
                             </span>
 
                             {!collapsed && (
@@ -577,32 +737,97 @@ const Sidebar = () => {
                                     Conversations
                                 </span>
                             )}
+
                         </button>
 
                     </nav>
 
+                    {/* =================================================
+                        RECENT CONVERSATIONS
+                    ================================================== */}
+
                     {!collapsed && (
                         <div className="mt-6 px-3">
-                            <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.15em] text-[#A27C4D]">
+
+                            <p
+                                className="
+                                    mb-3
+                                    text-[12px]
+                                    font-medium
+                                    uppercase
+                                    tracking-[0.15em]
+                                    text-[#A27C4D]
+                                "
+                            >
                                 Recent conversations
                             </p>
 
                             {conversations.length > 0 ? (
+
                                 <div className="space-y-2">
-                                    {conversations.map((conversation) => (
-                                        <button
-                                            key={conversation._id}
-                                            className="w-full rounded-[14px] border border-[#E9DCC5] bg-[#FFFDF7] px-3 py-3 text-left text-sm text-[#573A1D] transition hover:bg-[#FFF7E7]"
-                                        >
-                                            {conversation.title || "Chat"}
-                                        </button>
-                                    ))}
+
+                                    {conversations.map(
+                                        (conversation) => {
+
+                                            const isSelected =
+                                                selectedConversation?._id ===
+                                                conversation._id;
+
+                                            return (
+                                                <button
+                                                    key={
+                                                        conversation._id
+                                                    }
+                                                    onClick={() =>
+                                                        handleSelectConversation(
+                                                            conversation
+                                                        )
+                                                    }
+                                                    className={`
+                                                        w-full
+                                                        rounded-[14px]
+                                                        border
+                                                        px-3
+                                                        py-3
+                                                        text-left
+                                                        text-sm
+                                                        transition
+
+                                                        ${isSelected
+                                                            ? "border-[#EEA000] bg-[#FFF0D6] text-[#573A1D]"
+                                                            : "border-[#E9DCC5] bg-[#FFFDF7] text-[#573A1D] hover:bg-[#FFF7E7]"
+                                                        }
+                                                    `}
+                                                >
+                                                    {conversation.title ||
+                                                        "Chat"}
+                                                </button>
+                                            );
+                                        }
+                                    )}
+
                                 </div>
+
                             ) : (
-                                <div className="rounded-[14px] border border-dashed border-[#E9DCC5] bg-[#FFFDF7] px-3 py-4 text-sm text-[#8C7254]">
+
+                                <div
+                                    className="
+                                        rounded-[14px]
+                                        border
+                                        border-dashed
+                                        border-[#E9DCC5]
+                                        bg-[#FFFDF7]
+                                        px-3
+                                        py-4
+                                        text-sm
+                                        text-[#8C7254]
+                                    "
+                                >
                                     No conversations yet.
                                 </div>
+
                             )}
+
                         </div>
                     )}
 
@@ -628,13 +853,17 @@ const Sidebar = () => {
                             </p>
                         )}
 
-                        {/* =================================================
-                            SETTINGS
-                        ================================================== */}
+                        {/* SETTINGS */}
 
                         <button
-                            onClick={handleSettings}
-                            title={collapsed ? "Settings" : ""}
+                            onClick={
+                                handleSettings
+                            }
+                            title={
+                                collapsed
+                                    ? "Settings"
+                                    : ""
+                            }
                             className={`
                                 group
                                 relative
@@ -653,6 +882,7 @@ const Sidebar = () => {
                                 }
                             `}
                         >
+
                             <span
                                 className="
                                     flex
@@ -666,7 +896,9 @@ const Sidebar = () => {
                                     text-[#8D7049]
                                 "
                             >
-                                <Settings size={21} />
+                                <Settings
+                                    size={21}
+                                />
                             </span>
 
                             {!collapsed && (
@@ -680,9 +912,11 @@ const Sidebar = () => {
                                     Settings
                                 </span>
                             )}
+
                         </button>
 
                     </div>
+
                 </div>
 
                 {/* =================================================
@@ -719,6 +953,7 @@ const Sidebar = () => {
                                 shrink-0
                                 items-center
                                 justify-center
+                                overflow-hidden
                                 rounded-full
                                 bg-[#F0A000]
                                 text-[14px]
@@ -726,17 +961,43 @@ const Sidebar = () => {
                                 text-white
                             "
                         >
-                            {
-                                userData?.avatar && !imageError ? (
-                                    <img src={userData.avatar} alt={userData.name || "user"} className="h-full w-full object-cover" onError={() => setImageError(true)} />
-                                ) : (<User />)
-                            }
+
+                            {userData?.avatar &&
+                                !imageError ? (
+
+                                <img
+                                    src={
+                                        userData.avatar
+                                    }
+                                    alt={
+                                        userData.name ||
+                                        "user"
+                                    }
+                                    className="
+                                        h-full
+                                        w-full
+                                        object-cover
+                                    "
+                                    onError={() =>
+                                        setImageError(
+                                            true
+                                        )
+                                    }
+                                />
+
+                            ) : (
+
+                                <User />
+
+                            )}
+
                         </div>
 
                         {/* USER DETAILS */}
 
                         {!collapsed && (
                             <>
+
                                 <div className="ml-3 min-w-0 flex-1">
 
                                     <p
@@ -746,7 +1007,11 @@ const Sidebar = () => {
                                             font-semibold
                                             text-[#573A1D]
                                         "
-                                    >{userData?.name || "New user"}
+                                    >
+                                        {
+                                            userData?.name ||
+                                            "New user"
+                                        }
                                     </p>
 
                                     <p
@@ -763,7 +1028,9 @@ const Sidebar = () => {
                                 {/* LOGOUT */}
 
                                 <button
-                                    onClick={handleLogout}
+                                    onClick={
+                                        handleLogout
+                                    }
                                     title="Logout"
                                     className="
                                         rounded-lg
@@ -774,8 +1041,11 @@ const Sidebar = () => {
                                         hover:text-[#D78300]
                                     "
                                 >
-                                    <LogOut size={19} />
+                                    <LogOut
+                                        size={19}
+                                    />
                                 </button>
+
                             </>
                         )}
 
@@ -786,9 +1056,11 @@ const Sidebar = () => {
                     ================================================== */}
 
                     <button
-                        onClick={() => {
-                            setCollapsed(!collapsed);
-                        }}
+                        onClick={() =>
+                            setCollapsed(
+                                !collapsed
+                            )
+                        }
                         className={`
                             group
                             relative
@@ -813,11 +1085,16 @@ const Sidebar = () => {
                             }
                         `}
                     >
+
                         {collapsed ? (
-                            <ChevronRight size={21} />
+                            <ChevronRight
+                                size={21}
+                            />
                         ) : (
                             <>
-                                <ChevronLeft size={18} />
+                                <ChevronLeft
+                                    size={18}
+                                />
 
                                 <span className="text-[14px] font-medium">
                                     Collapse
@@ -830,6 +1107,7 @@ const Sidebar = () => {
                                 Expand sidebar
                             </span>
                         )}
+
                     </button>
 
                 </div>

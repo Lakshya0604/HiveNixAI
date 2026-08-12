@@ -1,19 +1,25 @@
 // src/components/Layout.jsx
-import { useState } from "react";
+
 import Sidebar from "./Sidebar";
 import Artifact from "./Artifact";
 
 const Layout = ({ children }) => {
-
     return (
         <div className="flex h-screen overflow-hidden bg-[#FFF8EC]">
+
+            {/* SIDEBAR */}
             <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden pt-14 md:pt-0">
+
+            {/* MAIN CHAT AREA */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {children}
             </div>
-            <div className="flex flex-col overflow-hidden pt-14 md:pt-0">
+
+            {/* ARTIFACT */}
+            <div className="hidden flex-col overflow-hidden md:flex">
                 <Artifact />
             </div>
+
         </div>
     );
 };
