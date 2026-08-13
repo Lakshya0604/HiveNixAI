@@ -1,9 +1,17 @@
 import { useEffect, useRef } from "react";
 import { Bot } from "lucide-react";
+import { useSelector } from "react-redux";
+import MessageBubble from "./MessageBubble";
 
-const ChatList = ({ messages = [], isTyping = false }) => {
+const ChatList = ({ isTyping = false }) => {
+    // Dynamic messages from Redux
+    const { messages = [] } = useSelector(
+        (state) => state.message
+    );
+
     const bottomRef = useRef(null);
 
+    // Auto scroll to latest message
     useEffect(() => {
         bottomRef.current?.scrollIntoView({
             behavior: "smooth",
@@ -14,7 +22,22 @@ const ChatList = ({ messages = [], isTyping = false }) => {
         <div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top,_#FFF1D3,_#FFF8EC_60%)]">
 
             {/* MESSAGES AREA */}
-            <div className="relative px-5 py-8 sm:px-10">
+            <div
+                className="relative flex-1 overflow-y-auto px-5 py-8 sm:px-10"
+                style={{
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                }}
+            >
+
+                {/* Hide Chrome / Edge scrollbar */}
+                <style>
+                    {`
+                        .chat-scroll::-webkit-scrollbar {
+                            display: none;
+                        }
+                    `}
+                </style>
 
                 {/* Background Pattern */}
                 <div
@@ -46,58 +69,26 @@ const ChatList = ({ messages = [], isTyping = false }) => {
                 {/* Chat Messages */}
                 <div className="relative mx-auto flex max-w-[850px] flex-col gap-6">
 
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={`flex items-end gap-3 ${msg.role === "user"
-                                ? "flex-row-reverse"
-                                : ""
-                                }`}
-                        >
-
-                            {/* AGENT ICON */}
-                            {msg.role === "agent" && (
-                                <div
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center bg-gradient-to-br from-[#F3A712] to-[#DE8A0B] shadow-[0_4px_10px_-3px_rgba(222,138,11,0.6)]"
-                                    style={{
-                                        clipPath:
-                                            "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",
-                                    }}
-                                >
-                                    <Bot
-                                        size={17}
-                                        className="text-white"
-                                        strokeWidth={2}
-                                    />
+                    {/* Dynamic Messages */}
+                    {messages.length > 0 ? (
+                        <MessageBubble messages={messages} />
+                    ) : (
+                        <>
+                            <div className="flex flex-col min-h-[300px] items-center justify-center">
+                                <p className="text-bold text-[25px] text-[#F3A712] gap-10 m-2">
+                                    HiveNixAI Multi AI agent
+                                </p>
+                                <p className="text-sm text-[#8B7355]">
+                                    How can i help you ?
+                                </p>
+                                <div className="mt-2 flex flex-wrap p-4 gap-5">
+                                    {["Write a Netflix clone", "Explain Redis", "Build a Navbar"].map((s) => (
+                                        <button className="text-[18px] p-2 border-none rounded-full text-white bg-[#F3A712] cursor-pointer">{s}</button>
+                                    ))}
                                 </div>
-                            )}
-
-                            {/* MESSAGE BUBBLE */}
-                            <div
-                                className={`max-w-[78%] rounded-2xl px-5 py-4 text-[17px] leading-relaxed shadow-sm ${msg.role === "user"
-                                    ? "rounded-br-md bg-gradient-to-br from-[#F3A712] to-[#DE8A0B] text-[#FFFDF8] shadow-[0_8px_18px_-8px_rgba(222,138,11,0.65)]"
-                                    : "rounded-bl-md border border-[#3B2712]/10 border-l-2 border-l-[#F3A712] bg-white text-[#3B2712]"
-                                    }`}
-                            >
-
-                                {/* MESSAGE TEXT */}
-                                <p className="whitespace-pre-wrap">
-                                    {msg.text}
-                                </p>
-
-                                {/* TIME */}
-                                <p
-                                    className={`mt-2 text-[12px] ${msg.role === "user"
-                                        ? "text-[#FFFDF8]/75"
-                                        : "text-[#B96B08]"
-                                        }`}
-                                >
-                                    {msg.time}
-                                </p>
-
                             </div>
-                        </div>
-                    ))}
+                        </>
+                    )}
 
                     {/* TYPING INDICATOR */}
                     {isTyping && (

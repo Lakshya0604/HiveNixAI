@@ -1,153 +1,134 @@
-import { useEffect, useState } from "react";
-import Nav from "./Nav";
-import ChatList from "./ChatList";
-import ChatInput from "./ChatInput";
+import { useEffect, useRef } from "react";
+import { Bot } from "lucide-react";
+import { useSelector } from "react-redux";
+import MessageBubble from "./MessageBubble";
 
-import { useDispatch, useSelector } from "react-redux";
-
-import getMessages from "../features/getMessages";
-import { setMessages } from "../redux/messageSlice";
-
-const INITIAL_MESSAGES = [
-    {
-        id: 1,
-        role: "agent",
-        text: "Hi Lakshya, HiveNixAI agent yahan hai. Bata, kya build karna hai aaj?",
-        time: "10:02 AM",
-    },
-    {
-        id: 2,
-        role: "user",
-        text: "Gateway service ka health check route add karo.",
-        time: "10:03 AM",
-    },
-    {
-        id: 3,
-        role: "agent",
-        text: "Theek hai — /health route add kar raha hoon jo gateway aur downstream services dono ka status return karega.",
-        time: "10:03 AM",
-    },
-];
-
-const ChatArea = () => {
-    const [messages, setLocalMessages] = useState(INITIAL_MESSAGES);
-    const [input, setInput] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
-
-    const dispatch = useDispatch();
-
-    // Redux store:
-    // store -> conversation -> selectedConversation
-    const { selectedConversation } = useSelector(
-        (state) => state.conversation
+const ChatList = ({ isTyping = false }) => {
+    // Dynamic messages from Redux
+    const { messages = [] } = useSelector(
+        (state) => state.message
     );
 
-    console.log(
-        "SELECTED CONVERSATION:",
-        selectedConversation
-    );
+    const bottomRef = useRef(null);
 
+    // Auto scroll to latest message
     useEffect(() => {
-        const getMsg = async () => {
-            // No conversation selected
-            if (!selectedConversation?._id) {
-                console.log(
-                    "No selected conversation, API not called"
-                );
-                return;
-            }
-
-            console.log(
-                "Calling getMessages for:",
-                selectedConversation._id
-            );
-
-            try {
-                const data = await getMessages(
-                    selectedConversation._id
-                );
-
-                console.log(
-                    "Messages API response:",
-                    data
-                );
-
-                // Redux message state
-                dispatch(setMessages(data));
-
-                // Local state used by ChatList
-                setLocalMessages(data);
-
-            } catch (error) {
-                console.error(
-                    "Failed to fetch messages:",
-                    error
-                );
-            }
-        };
-
-        getMsg();
-    }, [selectedConversation, dispatch]);
-
-    const handleSend = () => {
-        const trimmed = input.trim();
-
-        if (!trimmed) return;
-
-        const userMessage = {
-            id: Date.now(),
-            role: "user",
-            text: trimmed,
-            time: new Date().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-            }),
-        };
-
-        setLocalMessages((prev) => [
-            ...prev,
-            userMessage,
-        ]);
-
-        setInput("");
-        setIsTyping(true);
-
-        setTimeout(() => {
-            const agentMessage = {
-                id: Date.now() + 1,
-                role: "agent",
-                text: "Received. Agent pipeline isko process kar raha hai...",
-                time: new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                }),
-            };
-
-            setLocalMessages((prev) => [
-                ...prev,
-                agentMessage,
-            ]);
-
-            setIsTyping(false);
-        }, 900);
-    };
+        bottomRef.current?.scrollIntoView({
+            behavior: "smooth",
+        });
+    }, [messages, isTyping]);
 
     return (
-        <div className="flex h-full min-w-0 flex-1 flex-col">
-            <Nav />
+        <div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top,_#FFF1D3,_#FFF8EC_60%)]">
 
-            <ChatList
-                messages={messages}
-                isTyping={isTyping}
-            />
+            {/* MESSAGES AREA */}
+            <div
+                className="relative flex-1 overflow-y-auto px-5 py-8 sm:px-10"
+                style={{
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                }}
+            >
 
-            <ChatInput
-                input={input}
-                setInput={setInput}
-                handleSend={handleSend}
-            />
+                {/* Hide Chrome / Edge scrollbar */}
+                <style>
+                    {`
+                        .chat-scroll::-webkit-scrollbar {
+                            display: none;
+                        }
+                    `}
+                </style>
+
+                {/* Background Pattern */}
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-[0.035]"
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(
+                                30deg,
+                                #DE8A0B 12%,
+                                transparent 12.5%,
+                                transparent 87%,
+                                #DE8A0B 87.5%,
+                                #DE8A0B
+                            ),
+                            linear-gradient(
+                                150deg,
+                                #DE8A0B 12%,
+                                transparent 12.5%,
+                                transparent 87%,
+                                #DE8A0B 87.5%,
+                                #DE8A0B
+                            )
+                        `,
+                        backgroundSize: "44px 76px",
+                    }}
+                    aria-hidden="true"
+                />
+
+                {/* Chat Messages */}
+                <div className="relative mx-auto flex max-w-[850px] flex-col gap-6">
+
+                    {/* Dynamic Messages */}
+                    {messages.length > 0 ? (
+                        <MessageBubble messages={messages} />
+                    ) : (
+                        <>
+                            <div className="flex flex-col min-h-[300px] items-center justify-center">
+                                <p className="text-bold text-[25px] text-[#F3A712] gap-10 m-2">
+                                    HiveNixAI Multi AI agent
+                                </p>
+                                <p className="text-sm text-[#8B7355]">
+                                    How can i help you ?
+                                </p>
+                                <div className="mt-2 flex flex-wrap p-4 gap-5">
+                                    {["Write a Netflix clone", "Explain Redis", "Build a Navbar"].map((s) => (
+                                        <button className="text-[18px] p-2 border-none rounded-full text-white bg-[#F3A712] cursor-pointer">{s}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* TYPING INDICATOR */}
+                    {isTyping && (
+                        <div className="flex items-end gap-3">
+
+                            {/* Agent Icon */}
+                            <div
+                                className="flex h-10 w-10 shrink-0 items-center justify-center bg-gradient-to-br from-[#F3A712] to-[#DE8A0B]"
+                                style={{
+                                    clipPath:
+                                        "polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)",
+                                }}
+                            >
+                                <Bot
+                                    size={17}
+                                    className="text-white"
+                                    strokeWidth={2}
+                                />
+                            </div>
+
+                            {/* Typing Bubble */}
+                            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-[#3B2712]/10 bg-white px-5 py-4 shadow-sm">
+
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#DE8A0B] [animation-delay:-0.3s]" />
+
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#DE8A0B] [animation-delay:-0.15s]" />
+
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#DE8A0B]" />
+
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Auto Scroll Target */}
+                    <div ref={bottomRef} />
+
+                </div>
+            </div>
         </div>
     );
 };
 
-export default ChatArea;
+export default ChatList;
