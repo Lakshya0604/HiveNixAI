@@ -44,7 +44,7 @@ export const updateConversations = async (req, res) => {
 export const saveMessage = async (req, res) => {
     try {
         // Fixed typos: convrsationId -> conversationId, contend -> content
-        const { conversationId, role, content } = req.body
+        const { conversationId, role, content, images } = req.body
 
         // Fixed: comma operator only checked the last condition.
         // Now all three are properly checked with ||
@@ -55,7 +55,8 @@ export const saveMessage = async (req, res) => {
         const message = await Message.create({
             conversationId,
             content,
-            role
+            role,
+            images
         })
         return res.status(200).json(message)
     } catch (error) {

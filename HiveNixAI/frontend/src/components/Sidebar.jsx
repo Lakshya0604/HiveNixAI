@@ -768,7 +768,9 @@ const Sidebar = () => {
 
                                     {conversations.map(
                                         (conversation) => {
-
+                                            if (!conversation || !conversation._id) {
+                                                return null
+                                            }
                                             const isSelected =
                                                 selectedConversation?._id ===
                                                 conversation._id;

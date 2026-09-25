@@ -82,8 +82,8 @@ const ChatList = ({ isTyping = false }) => {
                                     How can i help you ?
                                 </p>
                                 <div className="mt-2 flex flex-wrap p-4 gap-5">
-                                    {["Write a Netflix clone", "Explain Redis", "Build a Navbar"].map((s) => (
-                                        <button className="text-[18px] p-2 border-none rounded-full text-white bg-[#F3A712] cursor-pointer">{s}</button>
+                                    {["Write a Netflix clone", "Explain Redis", "Build a Navbar"].map((s, idx) => (
+                                        <button key={idx} className="text-[18px] p-2 border-none rounded-full text-white bg-[#F3A712] cursor-pointer">{s}</button>
                                     ))}
                                 </div>
                             </div>

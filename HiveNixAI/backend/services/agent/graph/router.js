@@ -1,7 +1,32 @@
 import { getModel } from "../config/llmModel.js"
-export const router = async (state) => {
-    const llm = await getModel("router");
 
+// Time-related queries must always go to the search agent, which has
+// access to the accurate server clock. The chat agent has no real-time
+// knowledge and would guess or decline.
+function isTimeQuery(prompt) {
+    // Match actual time-asking patterns, tolerant of common typos
+    // ("currnet", "right know", "what time", "time in india").
+    // Avoid matching unrelated words like "time complexity".
+    return /what time|current time|right now|time now|what'?s the time|what is the time|time in|what'?s the date|current date|today'?s date|currnet time|right know/i.test(prompt)
+}
+
+export const router = async (state) => {
+    if (state.agent && state.agent !== "auto") {
+        return {
+            ...state,
+            agent: state.agent
+        };
+    }
+
+    // Hard-route time queries to search — it has the accurate server clock.
+    if (isTimeQuery(state.prompt)) {
+        return {
+            ...state,
+            agent: "search"
+        };
+    }
+
+    const llm = await getModel("router");
     const prompt = `
 You are an agent router.
 
