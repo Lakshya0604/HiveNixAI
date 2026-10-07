@@ -10,6 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "^2.1.0",
     "ioredis": "^6.0.0"
   }
 }

@@ -1,29 +1,40 @@
 import { getModel } from "../config/llmModel.js"
+import { getGitHubContext } from "../config/githubMcp.js"
+import { detectConversationDomain, normalizeAgentName } from "../config/domainRouting.js"
 
-// Time-related queries must always go to the search agent, which has
-// access to the accurate server clock. The chat agent has no real-time
-// knowledge and would guess or decline.
-function isTimeQuery(prompt) {
-    // Match actual time-asking patterns, tolerant of common typos
-    // ("currnet", "right know", "what time", "time in india").
-    // Avoid matching unrelated words like "time complexity".
-    return /what time|current time|right now|time now|what'?s the time|what is the time|time in|what'?s the date|current date|today'?s date|currnet time|right know/i.test(prompt)
-}
-
+// FIX 14: Keep existing GitHub routing behavior — GitHub queries go to searchAgent.
+// The isGitHubRequest function in githubMcp.js now handles multilingual detection
+// including Hindi, Hinglish, and context-based follow-ups (isme, iske, etc.)
 export const router = async (state) => {
     if (state.agent && state.agent !== "auto") {
+        const agent = normalizeAgentName(state.agent)
+        const domain = agent === "chat" ? "general" : agent === "search" ? "web_search" : agent
         return {
             ...state,
-            agent: state.agent
+            agent,
+            domain,
         };
     }
 
-    // Hard-route time queries to search — it has the accurate server clock.
-    if (isTimeQuery(state.prompt)) {
-        return {
-            ...state,
-            agent: "search"
-        };
+    let domain = detectConversationDomain(state.prompt)
+
+    // Read conversation state only when the current message looks like a
+    // repository-specific follow-up; weather, coding, and chat never inherit it.
+    if ((domain.domain === "general" || domain.domain === "other") && domain.isPotentialFollowUp && state.conversationId) {
+        const context = await getGitHubContext(state.conversationId)
+        domain = detectConversationDomain(state.prompt, context)
+    }
+
+    if (domain.agent) {
+        console.log("[ROUTER]", JSON.stringify({
+            query: String(state.prompt || "").slice(0, 300),
+            domain: domain.domain,
+            githubEvidence: domain.githubEvidence,
+            contextInherited: domain.contextInherited,
+            repository: domain.repository,
+            agent: domain.agent,
+        }))
+        return { ...state, agent: domain.agent, domain: domain.domain }
     }
 
     const llm = await getModel("router");
@@ -169,10 +180,25 @@ ${state.prompt}
 `;
 
     const response = await llm.invoke(prompt);
-    console.log(prompt)
+
+    const agent = normalizeAgentName(response.content)
+    const resolvedDomain = agent === "chat"
+        ? "general"
+        : agent === "search"
+            ? domain.domain
+            : agent
+    console.log("[ROUTER]", JSON.stringify({
+        query: String(state.prompt || "").slice(0, 300),
+        domain: domain.domain,
+        githubEvidence: domain.githubEvidence,
+        contextInherited: false,
+        repository: null,
+        agent,
+    }))
 
     return {
         ...state,
-        agent: response.content.trim().toLowerCase()
+        agent,
+        domain: resolvedDomain,
     };
-};  
+};

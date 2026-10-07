@@ -1,4 +1,4 @@
-import { getModel } from "../config/llmModel.js"
+import { getModel, safeLLMCall } from "../config/llmModel.js"
 
 export const pptAgent = async (state) => {
     const llm = await getModel("ppt")
@@ -26,7 +26,7 @@ YOUR BOUNDARIES (what you DO NOT do):
 - DO NOT have general casual conversations
 - If the user asks for any of the above, politely decline and say:
   "I'm a PowerPoint assistant. For that, please use the
-  coding / pdf / image / search agent instead."
+  pdf / ppt / image / search agent instead."
 
 OUTPUT FORMAT:
 - Structure content slide-by-slide
@@ -43,7 +43,7 @@ OUTPUT FORMAT:
 ${state.prompt}
 
 Please respond to the user's query above.`;
-    const response = await llm.invoke(prompt + userPrompt)
+    const response = await safeLLMCall(llm, prompt + userPrompt)
     const content = Array.isArray(response.content)
         ? response.content.map(block => block.text || "").join("")
         : response.content

@@ -1,4 +1,4 @@
-import { getModel } from "../config/llmModel.js"
+import { getModel, safeLLMCall } from "../config/llmModel.js"
 
 export const pdfAgent = async (state) => {
     const llm = await getModel("pdf")
@@ -42,7 +42,7 @@ OUTPUT FORMAT:
 ${state.prompt}
 
 Please respond to the user's query above.`;
-    const response = await llm.invoke(prompt + userPrompt)
+    const response = await safeLLMCall(llm, prompt + userPrompt)
     const content = Array.isArray(response.content)
         ? response.content.map(block => block.text || "").join("")
         : response.content

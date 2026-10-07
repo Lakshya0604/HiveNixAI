@@ -1,8 +1,8 @@
-import { Send, Paperclip, Mic, Zap, MessageSquare, Code2, FileText, Presentation, Globe, ImageIcon, MicOff, ToggleRight, ToggleLeft, Square, Volume2, VolumeX } from "lucide-react";
+import { Send, Paperclip, Mic, Zap, MessageSquare, Code2, FileText, Presentation, Globe, ImageIcon, MicOff, ToggleRight, ToggleLeft, VolumeX } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import sendMessage from "../features/sendMessage"
 import { useDispatch, useSelector } from "react-redux";
-import { setMessages, addMessage } from "../redux/messageSlice";
+import { addMessage } from "../redux/messageSlice";
 import { addConversation, setConveTitle, setselectedConversation, } from "../redux/conversationSlice";
 import { updateConversation } from "../features/updateConversation";
 import { createConversation } from "../features/createConversation";
@@ -13,7 +13,25 @@ const ChatInput = () => {
     const [value, setValue] = useState("")
     const [selectedAgent, setSelectedAgent] = useState("auto")
     const [showVoiceError, setShowVoiceError] = useState(null)
-    const [recognitionLang, setRecognitionLang] = useState(undefined) // undefined = auto-detect
+    const [recognitionLang, setRecognitionLang] = useState(() => {
+        // Auto-detect from browser language
+        const browserLang = navigator.language || navigator.userLanguage || "en-US";
+        const langMap = {
+            "hi": "hi-IN", "hi-IN": "hi-IN",
+            "bn": "bn-IN", "bn-IN": "bn-IN",
+            "ta": "ta-IN", "ta-IN": "ta-IN",
+            "te": "te-IN", "te-IN": "te-IN",
+            "mr": "mr-IN", "mr-IN": "mr-IN",
+            "gu": "gu-IN", "gu-IN": "gu-IN",
+            "kn": "kn-IN", "kn-IN": "kn-IN",
+            "ml": "ml-IN", "ml-IN": "ml-IN",
+            "pa": "pa-IN", "pa-IN": "pa-IN",
+            "ur": "ur-PK", "ur-PK": "ur-PK",
+            "en": "en-US", "en-US": "en-US", "en-IN": "en-IN",
+        };
+        const shortLang = browserLang.split("-")[0];
+        return langMap[browserLang] || langMap[shortLang] || "en-US";
+    })
     const dispatch = useDispatch();                          
     const { selectedConversation } = useSelector(state => state.conversation)
 
@@ -50,7 +68,6 @@ const ChatInput = () => {
     const isListening = voiceState === VOICE_STATES.LISTENING;
     const isProcessing = voiceState === VOICE_STATES.PROCESSING;
     const isSpeaking = voiceState === VOICE_STATES.SPEAKING;
-    const isIdle = voiceState === VOICE_STATES.IDLE;
 
     // Handle AI response auto-speak when messages are added
     const { messages } = useSelector(state => state.message);

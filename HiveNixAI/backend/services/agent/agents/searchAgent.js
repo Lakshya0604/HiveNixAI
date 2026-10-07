@@ -1,5 +1,18 @@
 import { getModel } from "../config/llmModel.js"
 import { searchTool } from "../config/tavily.js"
+import { isTokenLimitError } from "../utils/tokenHelper.js"
+import {
+    isGitHubRequest,
+    runGitHubQuery,
+    detectLanguage,
+    isRateLimitError,
+    retryAfterText,
+    formatGitHubDirect,
+    formatRepoListDirect,
+    formatTreeDirect,
+    formatCommitListDirect,
+    formatBranchListDirect,
+} from "../config/githubMcp.js"
 
 // ---------- Time helpers ----------
 function getCurrentTime() {
@@ -515,6 +528,10 @@ async function askLLM(llm, promptText, fallbackText) {
             : response.content
         return content?.trim() || fallbackText
     } catch (err) {
+        // Re-throw token limit errors so they propagate to the controller
+        if (isTokenLimitError(err)) {
+            throw err
+        }
         console.error("LLM call failed:", err)
         return fallbackText
     }
@@ -605,7 +622,210 @@ export const searchAgent = async (state) => {
     try {
         const now = getCurrentTime()
         const q = (state.prompt || "").toLowerCase()
-        const { isImageRequest, wantsImages, isLinkRequest, isTimeRequest, isNewsRequest, isWeatherRequest, isSportsRequest, isFinanceRequest } = detectIntent(q)
+        // ========================================================
+        // GITHUB MCP ROUTING
+        // ========================================================
+
+        if (await isGitHubRequest(state.prompt, state.conversationId)) {
+            let githubResult
+            try {
+                console.log("🐙 GitHub MCP request:", state.prompt)
+
+                githubResult = await runGitHubQuery(
+                    state.prompt,
+                    state.conversationId
+                )
+            } catch (githubError) {
+                // FIX 7 & FIX 10: Differentiate error types
+                console.error("GitHub MCP ERROR:", githubError)
+
+                if (isRateLimitError(githubError)) {
+                    const retryTime = retryAfterText(githubError)
+                    const lang = detectLanguage(state.prompt)
+                    const rateLimitMsg = {
+                        English: `AI model ka token limit abhi khatam hai. Kuch der baad (${retryTime}) try karo.`,
+                        Hindi: `एआई मॉडल का टोकन लिमिट अभी ख़त्म है। कुछ देर बाद (${retryTime}) फिर कोशिश करें।`,
+                        Hinglish: `AI model ka token limit abhi khatam hai. ${retryTime} baad try karo.`,
+                    }
+                    const msg = rateLimitMsg[lang] || rateLimitMsg.English
+
+                    return {
+                        ...state,
+                        searchResults: {
+                            query: state.prompt,
+                            images: [],
+                            sources: [],
+                            github: { error: "rate_limit", retryAfter: retryTime },
+                        },
+                        images: [],
+                        aiResponse: msg,
+                    }
+                }
+
+                const lang = detectLanguage(state.prompt)
+                const connErrorMsg = {
+                    English: "GitHub MCP connection failed, check token",
+                    Hindi: "GitHub MCP कनेक्शन विफल, टोकन जाँचें",
+                    Hinglish: "GitHub MCP connection failed, token check karo",
+                }
+
+                return {
+                    ...state,
+                    searchResults: {
+                        query: state.prompt,
+                        images: [],
+                        sources: [],
+                        github: { error: "connection" },
+                    },
+                    images: [],
+                    aiResponse: connErrorMsg[lang] || connErrorMsg.English,
+                }
+            }
+
+            // FIX 8: Direct formatter for simple data (no LLM call needed)
+            const language = detectLanguage(state.prompt)
+            const isSimpleResult = (
+                githubResult.tool === "search_repositories" ||
+                githubResult.tool === "list_commits" ||
+                githubResult.tool === "list_branches" ||
+                githubResult.tool === "list_releases" ||
+                githubResult.tool === "list_issues" ||
+                githubResult.tool === "search_issues" ||
+                githubResult.tool === "list_pull_requests" ||
+                githubResult.tool === "search_pull_requests"
+            )
+
+            // For repository tree, we can also format directly
+            const isTreeResult = (
+                githubResult.tool === "get_file_contents" &&
+                githubResult.path === "(recursive tree)"
+            )
+
+            // FIX 15: Token optimization — use direct formatter for simple results
+            // instead of calling LLM for every response
+            if (isSimpleResult || isTreeResult) {
+                let directFormatted = formatGitHubDirect(githubResult, language)
+
+                // If direct formatter couldn't handle it, use raw data
+                if (!directFormatted) {
+                    const lang = detectLanguage(state.prompt) || "English"
+                    directFormatted = `${githubResult.data || "No data available."}`
+                }
+
+                // FIX 10: Return the formatted result directly without LLM
+                return {
+                    ...state,
+                    searchResults: {
+                        query: state.prompt,
+                        images: [],
+                        sources: [],
+                        github: {
+                            tool: githubResult.tool,
+                            repository: githubResult.repository,
+                            user: githubResult.user,
+                        },
+                    },
+                    images: [],
+                    aiResponse: directFormatted,
+                }
+            }
+
+            // For complex requests (file contents, code explanations, etc.), use LLM
+            const MAX_GH_CHARS = 12000
+            let githubData = githubResult.data || ""
+            let truncated = false
+            if (githubData.length > MAX_GH_CHARS) {
+                githubData = githubData.slice(0, MAX_GH_CHARS) + "\n\n...[truncated]..."
+                truncated = true
+            }
+
+            const llm = await getModel("search")
+            const detectedLanguage = language
+
+            const githubPrompt = `You are a GitHub-aware AI assistant.
+
+The user asked:
+${state.prompt}
+
+GitHub MCP tool used:
+${githubResult.tool}
+
+${githubResult.repository ? `Repository:\n${githubResult.repository}\n\n` : ""}
+${githubResult.user ? `GitHub user:\n${githubResult.user}\n\n` : ""}
+GitHub MCP result:
+${truncated ? githubData + "\n\n[NOTE: Result was truncated to fit model limits. This may cause incomplete information.]" : githubData}
+
+RESPOND IN: ${detectedLanguage}
+The user's query is in ${detectedLanguage}. Respond in the same language and style — use natural Hinglish or Hindi if the query is in Hinglish/Hindi, and English if the query is in English.
+
+RULES:
+1. Answer using ONLY the GitHub MCP result.
+2. Do not invent repository files, code, commits, issues, or facts.
+3. Clearly say when the GitHub result does not contain enough information.
+4. If code is present, explain it accurately.
+5. Keep the answer concise and useful.
+6. Do not expose API tokens or authentication information.
+7. Do not claim that you changed anything unless a write tool was actually used.`
+
+            let githubAnswer
+            try {
+                githubAnswer = await askLLM(
+                    llm,
+                    githubPrompt,
+                    "I connected to GitHub, but I couldn't generate a clear answer from the repository data."
+                )
+
+                // FIX 7 & FIX 10: Handle LLM rate limit during answer generation
+                // If this throws a 429, catch it and return raw data instead
+            } catch (llmError) {
+                // FIX 10: If GitHub MCP succeeded but LLM answer generation failed,
+                // return the GitHub data directly when possible
+                if (isRateLimitError(llmError)) {
+                    const retryTime = retryAfterText(llmError)
+                    const lang = detectedLanguage || "English"
+                    const rateLimitMsg = {
+                        English: `AI generation limit reached. ${retryTime} baad try karo.\n\nGitHub data:\n${githubData.slice(0, 2000)}`,
+                        Hindi: `AI जनरेशन सीमा पार हुई। ${retryTime} बाद फिर कोशिश करें।\n\nGitHub डेटा:\n${githubData.slice(0, 2000)}`,
+                        Hinglish: `AI generation limit reached. ${retryTime} baad try karo.\n\nGitHub data:\n${githubData.slice(0, 2000)}`,
+                    }
+                    githubAnswer = rateLimitMsg[lang] || rateLimitMsg.English
+                } else {
+                    // For non-rate-limit LLM errors, return raw data
+                    githubAnswer = `GitHub data:\n${githubData.slice(0, 2000)}`
+                }
+            }
+
+            return {
+                ...state,
+                searchResults: {
+                    query: state.prompt,
+                    images: [],
+                    sources: [],
+                    github: {
+                        tool: githubResult.tool,
+                        repository: githubResult.repository,
+                        user: githubResult.user,
+                    },
+                },
+                images: [],
+                aiResponse: githubAnswer,
+            }
+        }
+
+        // ========================================================
+        // NORMAL INTENT DETECTION
+        // ========================================================
+
+        const {
+            isImageRequest,
+            wantsImages,
+            isLinkRequest,
+            isTimeRequest,
+            isNewsRequest,
+            isWeatherRequest,
+            isSportsRequest,
+            isFinanceRequest
+        } = detectIntent(q)
 
         const explicitCount = extractImageCount(state.prompt, isImageRequest)
         // Priority: explicit number > "images" asked with no number (10) >
@@ -1026,6 +1246,10 @@ RULES:
 
         return { ...state, searchResults: compact, images: compact.images, aiResponse: content }
     } catch (error) {
+        // Re-throw token limit errors so they propagate to the controller
+        if (isTokenLimitError(error)) {
+            throw error
+        }
         console.error("SEARCH AGENT ERROR:", error)
         console.error("ERROR STACK:", error.stack)
         console.error("STATE:", JSON.stringify({ prompt: state?.prompt, agent: state?.agent }))
