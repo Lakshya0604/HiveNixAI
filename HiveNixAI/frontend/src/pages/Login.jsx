@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { signInWithPopup } from 'firebase/auth'
+import { signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
 import { auth, googleprovider } from '../../utils/firebase.js'
 import api from '../../utils/axios.js'
 import getCurrentUser from '../features/getCurrentUser.js'
@@ -13,6 +13,7 @@ const Login = () => {
     const [password, setPassword] = useState("")
     const [remember, setRemember] = useState(false)
     const [error, setError] = useState("")
+    const [resetMsg, setResetMsg] = useState("")
     const dispatch = useDispatch()
     const { userData } = useSelector(state => state.user)
     console.log(userData)
@@ -26,6 +27,20 @@ const Login = () => {
         catch (error) {
             console.log(error)
             setError("Login failed. Try again.")
+        }
+    }
+
+    const handleForgot = async (e) => {
+        e.preventDefault()
+        setResetMsg("")
+        setError("")
+        if (!email) { setResetMsg("Type your email in the box above first.") ; return }
+        try {
+            await sendPasswordResetEmail(auth, email)
+            setResetMsg("Reset link sent - check your inbox (and spam folder).")
+        } catch (err) {
+            console.log(err)
+            setResetMsg(err.code === "auth/user-not-found" ? "No account found with that email." : "Could not send the reset email. Try again in a bit.")
         }
     }
 
@@ -200,7 +215,7 @@ const Login = () => {
                             <label htmlFor="password" className="block text-xs font-medium tracking-wide uppercase" style={{ color: "var(--soft-brown)" }}>
                                 Password
                             </label>
-                            <a href="#" className="link-honey text-xs font-medium">Forgot?</a>
+                            <a href="#" onClick={handleForgot} className="link-honey text-xs font-medium">Forgot?</a>
                         </div>
                         <input
                             id="password"
@@ -212,6 +227,7 @@ const Login = () => {
                             className="input-field w-full rounded-lg px-4 py-3 text-sm"
                             style={{ color: "var(--ink-brown)" }}
                         />
+                        {resetMsg && <p className="text-xs mt-2" style={{ color: "var(--soft-brown)" }}>{resetMsg}</p>}
                     </div>
 
                     <label className="flex items-center gap-2 text-xs cursor-pointer select-none" style={{ color: "var(--soft-brown)" }}>
